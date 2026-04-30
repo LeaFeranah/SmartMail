@@ -1,0 +1,27 @@
+# Secrets
+.env
+*.env
+backend/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+.venv/
+
+# Database locale
+db.sqlite3
+backend/db.sqlite3
+
+# Node / React
+node_modules/
+dist/
+build/
+
+# Windows / IDE
+.vscode/
+.DS_Store
+Thumbs.db
