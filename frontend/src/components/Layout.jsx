@@ -12,115 +12,56 @@ const navItems = [
 export default function Layout() {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
+  const handleLogout = () => { logout(); navigate('/login') }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)' }}>
+    <div style={{ display:'flex', height:'100vh', width:'100%', overflow:'hidden' }}>
 
-      {/* Sidebar */}
-      <aside style={{
-        width: '240px',
-        background: 'var(--surface)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '0',
-        flexShrink: 0,
-      }}>
+      {/* Sidebar fixe */}
+      <aside style={{ width:'210px', minWidth:'210px', background:'var(--surface)', borderRight:'1px solid var(--border)', display:'flex', flexDirection:'column', height:'100vh' }}>
 
-        {/* Logo ISPM + Titre */}
-        <div style={{
-          padding: '24px 20px 20px',
-          borderBottom: '1px solid var(--border)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <img src="/logo_ispm.png" alt="ISPM" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)', letterSpacing: '0.05em' }}>
-                SmartMail AI
-              </div>
-              <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                ISPM · IGGLIA 5
-              </div>
-            </div>
+        {/* Logo */}
+        <div style={{ padding:'18px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:'10px' }}>
+          <img src="/logo_ispm.png" alt="ISPM" style={{ width:'30px', height:'30px', objectFit:'contain', flexShrink:0 }} />
+          <div>
+            <div style={{ fontSize:'13px', fontWeight:'700', color:'var(--text)', lineHeight:'1.2' }}>SmartMail AI</div>
+            <div style={{ fontSize:'10px', color:'var(--text3)', letterSpacing:'0.04em' }}>ISPM · IGGLIA 5</div>
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav style={{ flex: 1, padding: '12px 12px' }}>
-          <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', padding: '8px 8px 6px', marginBottom: '4px' }}>
-            Navigation
-          </div>
+        {/* Nav */}
+        <nav style={{ flex:1, padding:'10px 8px', overflowY:'auto' }}>
+          <div style={{ fontSize:'10px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.08em', padding:'6px 8px 4px', fontWeight:'600' }}>Navigation</div>
           {navItems.map(({ to, icon: Icon, label, end }) => (
-            <NavLink key={to} to={to} end={end} style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '8px 10px',
-              borderRadius: '4px',
-              marginBottom: '2px',
-              fontSize: '13.5px',
-              fontWeight: isActive ? '600' : '400',
-              color: isActive ? 'var(--green)' : 'var(--text2)',
-              background: isActive ? 'var(--green-muted)' : 'transparent',
-              border: isActive ? '1px solid var(--green-border)' : '1px solid transparent',
-              textDecoration: 'none',
-              transition: 'all 0.15s',
-            })}>
-              <Icon size={15} />
-              {label}
-            </NavLink>
+      <NavLink
+  key={to}
+  to={to}
+  end={end}
+  className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+>
+  <Icon size={15} />
+  {label}
+</NavLink>
           ))}
         </nav>
 
-        {/* Utilisateur */}
-        <div style={{
-          padding: '16px 12px',
-          borderTop: '1px solid var(--border)',
-        }}>
-          <div style={{
-            padding: '10px',
-            background: 'var(--surface2)',
-            borderRadius: '4px',
-            border: '1px solid var(--border)',
-            marginBottom: '8px',
-          }}>
-            <div style={{ fontSize: '10px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>
-              Connecté
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--text)', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user?.email}
-            </div>
+        {/* User */}
+        <div style={{ padding:'10px 8px', borderTop:'1px solid var(--border)' }}>
+          <div style={{ padding:'8px 10px', background:'var(--bg)', borderRadius:'6px', border:'1px solid var(--border)', marginBottom:'6px' }}>
+            <div style={{ fontSize:'10px', color:'var(--text3)', marginBottom:'2px' }}>Connecté</div>
+            <div style={{ fontSize:'12px', color:'var(--text)', fontWeight:'500', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{user?.email}</div>
           </div>
-          <button onClick={handleLogout} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            width: '100%',
-            padding: '6px 10px',
-            borderRadius: '4px',
-            border: '1px solid var(--border)',
-            background: 'transparent',
-            color: 'var(--text3)',
-            fontSize: '12px',
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#ef444440'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text3)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-          >
-            <LogOut size={13} />
-            Déconnexion
+          <button onClick={handleLogout}
+            style={{ display:'flex', alignItems:'center', gap:'7px', width:'100%', padding:'7px 10px', borderRadius:'6px', border:'1px solid var(--border)', background:'transparent', color:'var(--text2)', fontSize:'12px', cursor:'pointer', fontFamily:'Inter,sans-serif', transition:'all 0.12s' }}
+            onMouseEnter={e => { e.currentTarget.style.color='var(--danger)'; e.currentTarget.style.borderColor='#fca5a5' }}
+            onMouseLeave={e => { e.currentTarget.style.color='var(--text2)'; e.currentTarget.style.borderColor='var(--border)' }}>
+            <LogOut size={13} /> Déconnexion
           </button>
         </div>
       </aside>
 
-      {/* Main */}
-      <main style={{ flex: 1, overflow: 'auto', background: 'var(--bg)' }}>
+      {/* Contenu principal — prend tout l'espace restant */}
+      <main style={{ flex:1, overflowY:'auto', background:'var(--bg)', minWidth:0 }}>
         <Outlet />
       </main>
     </div>

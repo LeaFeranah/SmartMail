@@ -2,21 +2,13 @@ import { useEffect, useState, useRef } from 'react'
 import { Mail, Clock, AlertTriangle, CheckCircle, RefreshCw, Zap } from 'lucide-react'
 import api from '../api/client'
 
-const PRIORITY_COLOR = {
-  urgent: 'bg-red-500/20 text-red-400 border-red-500/30',
-  high: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  normal: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  low: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+const PRIORITY_STYLE = {
+  urgent: { bg:'#fef2f2', color:'#b91c1c', border:'#fecaca' },
+  high:   { bg:'#fffbeb', color:'#92400e', border:'#fde68a' },
+  normal: { bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe' },
+  low:    { bg:'#f9fafb', color:'#6b7280', border:'#e5e7eb' },
 }
-
-const CATEGORY_LABEL = {
-  action_required: 'Action requise',
-  waiting_reply: 'En attente',
-  informational: 'Informatif',
-  spam: 'Spam',
-  newsletter: 'Newsletter',
-  other: 'Autre',
-}
+const CATEGORY_LABEL = { action_required:'Action requise', waiting_reply:'En attente', informational:'Informatif', spam:'Spam', newsletter:'Newsletter', other:'Autre' }
 
 export default function EmailsPage() {
   const [emails, setEmails] = useState([])
@@ -28,36 +20,26 @@ export default function EmailsPage() {
   const refreshRef = useRef(0)
   const [tick, setTick] = useState(0)
 
-  const handleRefresh = () => {
-    refreshRef.current += 1
-    setTick(refreshRef.current)
-  }
+  const handleRefresh = () => { refreshRef.current += 1; setTick(refreshRef.current) }
 
   useEffect(() => {
     const controller = new AbortController()
     const params = {}
-    if (filter === 'unread') params.is_read = 'false'
-    if (filter === 'needs_reply') params.needs_reply = 'true'
-    if (filter === 'urgent') params.priority = 'urgent'
+    if (filter==='unread') params.is_read='false'
+    if (filter==='needs_reply') params.needs_reply='true'
+    if (filter==='urgent') params.priority='urgent'
     ;(async () => {
       setLoading(true)
-      try {
-        const res = await api.get('/emails/', { params, signal: controller.signal })
-        setEmails(res.data.results || res.data)
-      } catch {
-        // ignoré
-      } finally {
-        setLoading(false)
-      }
+      try { const res = await api.get('/emails/', { params, signal:controller.signal }); setEmails(res.data.results || res.data) }
+      catch (e) { console.error(e) }
+      setLoading(false)
     })()
     return () => controller.abort()
   }, [filter, tick])
 
   const markRead = async (id) => {
-    try {
-      await api.post(`/emails/${id}/mark-read/`)
-      setEmails(prev => prev.map(e => e.id === id ? { ...e, is_read: true } : e))
-    } catch (e) { console.error(e) }
+    try { await api.post(`/emails/${id}/mark-read/`); setEmails(prev => prev.map(e => e.id===id?{...e,is_read:true}:e)) }
+    catch (e) { console.error(e) }
   }
 
   const analyzeEmail = async (id) => {
@@ -65,187 +47,109 @@ export default function EmailsPage() {
     try {
       const res = await api.post(`/analysis/email/${id}/`)
       const a = res.data.analysis
-      setEmails(prev => prev.map(e => e.id === id ? {
-        ...e, is_analyzed: true,
-        priority: a.priority, category: a.category,
-        summary: a.summary, needs_reply: a.needs_reply,
-        action_detected: a.action_detected,
-      } : e))
-      if (res.data.tasks_count > 0) {
-        alert(`✅ Analyse terminée !\n${res.data.tasks_count} tâche(s) créée(s) automatiquement.`)
-      }
-    } catch (err) { console.error(err) }
-    finally { setAnalyzing(null) }
+      setEmails(prev => prev.map(e => e.id===id?{...e,is_analyzed:true,priority:a.priority,category:a.category,summary:a.summary,needs_reply:a.needs_reply,action_detected:a.action_detected}:e))
+      if (res.data.tasks_count > 0) alert(`Analyse terminée — ${res.data.tasks_count} tâche(s) créée(s).`)
+    } catch (e) { console.error(e) }
+    setAnalyzing(null)
   }
 
   const analyzeAll = async () => {
     setAnalyzingAll(true)
-    try {
-      await api.post('/analysis/batch/')
-      handleRefresh()
-    } catch (e) { console.error(e) }
-    finally { setAnalyzingAll(false) }
+    try { await api.post('/analysis/batch/'); handleRefresh() }
+    catch (e) { console.error(e) }
+    setAnalyzingAll(false)
   }
 
   const scheduleFollowup = async (id) => {
     setSchedulingId(id)
-    try {
-      const res = await api.post(`/emails/${id}/schedule-followup/`)
-      alert(`✅ Relance planifiée !\n\nMessage généré par IA :\n\n${res.data.message}`)
-    } catch (e) {
-      alert('❌ Erreur lors de la planification.')
-      console.error(e)
-    } finally {
-      setSchedulingId(null)
-    }
+    try { const res = await api.post(`/emails/${id}/schedule-followup/`); alert(`Relance planifiée.\n\nMessage :\n${res.data.message}`) }
+    catch (e) { console.error(e) }
+    setSchedulingId(null)
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div style={{ padding:'28px', width:'100%' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'20px' }}>
         <div>
-          <h1 className="text-2xl font-bold text-white">Emails</h1>
-          <p className="text-slate-400 text-sm mt-1">{emails.length} message(s)</p>
+          <p style={{ fontSize:'11px', color:'var(--text3)', fontWeight:'600', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:'3px' }}>Boîte de réception</p>
+          <h1 style={{ fontSize:'20px', fontWeight:'700', color:'var(--text)' }}>Emails <span style={{ fontSize:'13px', color:'var(--text3)', fontWeight:'400' }}>— {emails.length}</span></h1>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={analyzeAll} disabled={analyzingAll}
-            className="flex items-center gap-2 bg-indigo-600/20 hover:bg-indigo-600/40
-                       border border-indigo-600/30 text-indigo-300 px-4 py-2
-                       rounded-xl text-sm transition-all disabled:opacity-50">
-            <Zap size={15} className={analyzingAll ? 'animate-pulse' : ''} />
-            {analyzingAll ? 'Analyse en cours...' : 'Tout analyser avec IA'}
+        <div style={{ display:'flex', gap:'8px' }}>
+          <button onClick={analyzeAll} disabled={analyzingAll} style={{ display:'flex', alignItems:'center', gap:'5px', background:'var(--blue-light)', color:'var(--blue)', border:'1px solid var(--blue-border)', borderRadius:'6px', padding:'7px 14px', fontSize:'12.5px', fontWeight:'500', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+            <Zap size={13} />{analyzingAll?'Analyse...':'Tout analyser'}
           </button>
-          <button onClick={handleRefresh}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700
-                       text-slate-300 px-4 py-2 rounded-xl text-sm transition-all">
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-            Actualiser
+          <button onClick={handleRefresh} style={{ display:'flex', alignItems:'center', gap:'5px', background:'var(--surface)', color:'var(--text2)', border:'1px solid var(--border)', borderRadius:'6px', padding:'7px 14px', fontSize:'12.5px', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+            <RefreshCw size={13} />Actualiser
           </button>
         </div>
       </div>
 
       {/* Filtres */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {[
-          { key: 'all', label: 'Tous' },
-          { key: 'unread', label: 'Non lus' },
-          { key: 'needs_reply', label: 'À répondre' },
-          { key: 'urgent', label: 'Urgents' },
-        ].map(f => (
-          <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all
-              ${filter === f.key
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-800 text-slate-400 hover:text-white'}`}>
+      <div style={{ display:'flex', gap:'6px', marginBottom:'18px', flexWrap:'wrap' }}>
+        {[{key:'all',label:'Tous'},{key:'unread',label:'Non lus'},{key:'needs_reply',label:'À répondre'},{key:'urgent',label:'Urgents'}].map(f=>(
+          <button key={f.key} onClick={()=>setFilter(f.key)} style={{ padding:'6px 14px', borderRadius:'6px', fontSize:'12.5px', fontWeight:'500', cursor:'pointer', fontFamily:'Inter,sans-serif', border: filter===f.key?'1px solid var(--blue)':'1px solid var(--border)', background: filter===f.key?'var(--blue-light)':'var(--surface)', color: filter===f.key?'var(--blue)':'var(--text2)', transition:'all 0.12s' }}>
             {f.label}
           </button>
         ))}
       </div>
 
-      {/* Liste emails */}
       {loading ? (
-        <div className="text-slate-500 text-center py-20">Chargement...</div>
+        <div style={{ textAlign:'center', padding:'60px', color:'var(--text3)', fontSize:'13px' }}>Chargement...</div>
       ) : emails.length === 0 ? (
-        <div className="text-slate-500 text-center py-20">
-          <Mail size={40} className="mx-auto mb-3 opacity-30" />
-          <p>Aucun email trouvé</p>
+        <div style={{ textAlign:'center', padding:'60px', color:'var(--text3)' }}>
+          <Mail size={32} style={{ margin:'0 auto 10px', display:'block', opacity:0.3 }} />
+          <p style={{ fontSize:'13px' }}>Aucun email trouvé</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {emails.map(email => (
-            <div key={email.id}
-              className={`bg-slate-900 border rounded-2xl p-5 transition-all hover:border-slate-600
-                ${email.is_read ? 'border-slate-800' : 'border-indigo-600/40'}`}>
-
-              {/* Contenu email */}
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {!email.is_read && (
-                      <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-                    )}
-                    <p className="text-white font-medium truncate">{email.subject}</p>
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+          {emails.map(email => {
+            const ps = PRIORITY_STYLE[email.priority] || PRIORITY_STYLE.normal
+            return (
+              <div key={email.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'8px', padding:'14px 16px', transition:'border-color 0.12s', width:'100%' }}
+                onMouseEnter={e=>e.currentTarget.style.borderColor='var(--border2)'}
+                onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+                <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px', marginBottom:'10px' }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'7px', marginBottom:'3px' }}>
+                      {!email.is_read && <span style={{ width:'7px', height:'7px', borderRadius:'50%', background:'var(--blue)', flexShrink:0, display:'inline-block' }} />}
+                      <p style={{ fontSize:'13.5px', fontWeight: email.is_read?'500':'600', color:'var(--text)', margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{email.subject}</p>
+                    </div>
+                    <p style={{ fontSize:'12px', color:'var(--text2)', margin:0 }}>{email.sender}</p>
+                    {email.summary && <p style={{ fontSize:'12.5px', color:'var(--text2)', margin:'7px 0 0', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:'6px', padding:'7px 11px', lineHeight:'1.5' }}>{email.summary}</p>}
                   </div>
-                  <p className="text-slate-400 text-sm mb-2">{email.sender}</p>
-                  {email.summary && (
-                    <p className="text-slate-500 text-sm bg-slate-800/50 rounded-lg px-3 py-2 mt-2">
-                      💡 {email.summary}
-                    </p>
-                  )}
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px', flexShrink:0 }}>
+                    <span style={{ fontSize:'11px', padding:'2px 8px', borderRadius:'4px', fontWeight:'600', background:ps.bg, color:ps.color, border:`1px solid ${ps.border}`, whiteSpace:'nowrap' }}>{email.priority}</span>
+                    {email.category && email.category!=='other' && <span style={{ fontSize:'11px', color:'var(--text3)' }}>{CATEGORY_LABEL[email.category]}</span>}
+                  </div>
                 </div>
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  <span className={`text-xs px-2 py-1 rounded-lg border
-                    ${PRIORITY_COLOR[email.priority] || PRIORITY_COLOR.normal}`}>
-                    {email.priority}
-                  </span>
-                  {email.category && email.category !== 'other' && (
-                    <span className="text-xs text-slate-500">
-                      {CATEGORY_LABEL[email.category]}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-800">
-                <div className="flex items-center gap-3 flex-wrap">
-
-                  {/* Marquer lu */}
-                  {!email.is_read && (
-                    <button onClick={() => markRead(email.id)}
-                      className="flex items-center gap-1 text-xs text-slate-400
-                                 hover:text-indigo-400 transition-all">
-                      <CheckCircle size={13} />
-                      Marquer lu
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:'10px', borderTop:'1px solid var(--border)', flexWrap:'wrap', gap:'8px' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'12px', flexWrap:'wrap' }}>
+                    {!email.is_read && (
+                      <button onClick={()=>markRead(email.id)} style={{ display:'flex', alignItems:'center', gap:'4px', background:'none', border:'none', padding:0, color:'var(--text3)', fontSize:'12px', cursor:'pointer', fontFamily:'Inter,sans-serif' }}
+                        onMouseEnter={e=>e.currentTarget.style.color='var(--blue)'}
+                        onMouseLeave={e=>e.currentTarget.style.color='var(--text3)'}>
+                        <CheckCircle size={13} /> Marquer lu
+                      </button>
+                    )}
+                    <button onClick={()=>scheduleFollowup(email.id)} disabled={schedulingId===email.id} style={{ display:'flex', alignItems:'center', gap:'4px', background:'none', border:'none', padding:0, color:'var(--text3)', fontSize:'12px', cursor:'pointer', fontFamily:'Inter,sans-serif' }}
+                      onMouseEnter={e=>e.currentTarget.style.color='var(--warning)'}
+                      onMouseLeave={e=>e.currentTarget.style.color='var(--text3)'}>
+                      <Clock size={13} />{schedulingId===email.id?'Génération...':'Planifier relance'}
                     </button>
-                  )}
-
-                  {/* Planifier relance */}
-                  <button
-                    onClick={() => scheduleFollowup(email.id)}
-                    disabled={schedulingId === email.id}
-                    className="flex items-center gap-1 text-xs text-slate-400
-                               hover:text-amber-400 transition-all disabled:opacity-50">
-                    <Clock size={13} className={schedulingId === email.id ? 'animate-pulse' : ''} />
-                    {schedulingId === email.id ? 'Génération...' : 'Planifier relance'}
-                  </button>
-
-                  {/* Badges */}
-                  {email.needs_reply && (
-                    <span className="flex items-center gap-1 text-xs text-amber-400">
-                      <Clock size={13} />
-                      Réponse requise
-                    </span>
-                  )}
-                  {email.action_detected && (
-                    <span className="flex items-center gap-1 text-xs text-red-400">
-                      <AlertTriangle size={13} />
-                      Action détectée
-                    </span>
+                    {email.needs_reply && <span style={{ fontSize:'12px', color:'var(--warning)', display:'flex', alignItems:'center', gap:'3px' }}><Clock size={12} />Réponse requise</span>}
+                    {email.action_detected && <span style={{ fontSize:'12px', color:'var(--danger)', display:'flex', alignItems:'center', gap:'3px' }}><AlertTriangle size={12} />Action détectée</span>}
+                  </div>
+                  {!email.is_analyzed ? (
+                    <button onClick={()=>analyzeEmail(email.id)} disabled={analyzing===email.id} style={{ display:'flex', alignItems:'center', gap:'4px', background:'var(--blue-light)', color:'var(--blue)', border:'1px solid var(--blue-border)', borderRadius:'6px', padding:'5px 12px', fontSize:'12px', fontWeight:'500', cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
+                      <Zap size={12} />{analyzing===email.id?'Analyse...':'Analyser'}
+                    </button>
+                  ) : (
+                    <span style={{ fontSize:'12px', color:'var(--success)', display:'flex', alignItems:'center', gap:'4px' }}><CheckCircle size={13} />Analysé</span>
                   )}
                 </div>
-
-                {/* Bouton analyse IA */}
-                {!email.is_analyzed ? (
-                  <button onClick={() => analyzeEmail(email.id)}
-                    disabled={analyzing === email.id}
-                    className="flex items-center gap-1 text-xs bg-indigo-600/20
-                               hover:bg-indigo-600/40 border border-indigo-600/30
-                               text-indigo-300 px-3 py-1.5 rounded-lg transition-all
-                               disabled:opacity-50">
-                    <Zap size={12} className={analyzing === email.id ? 'animate-pulse' : ''} />
-                    {analyzing === email.id ? 'Analyse...' : 'Analyser avec IA'}
-                  </button>
-                ) : (
-                  <span className="flex items-center gap-1 text-xs text-green-400">
-                    <CheckCircle size={12} />
-                    Analysé par IA
-                  </span>
-                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
